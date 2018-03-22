@@ -1,0 +1,7 @@
+{
+  "name": "homework8",
+  "short_name": "homework8",
+  "description": "homework 8 web app",
+  "start_url": "/",
+  "display": "standalone"
+}

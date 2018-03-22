@@ -1,0 +1,16 @@
+<link rel="import" href="../../bower_components/polymer-redux/polymer-redux.html">
+<script src="../../node_modules/redux/dist/redux.js"></script>
+<script>
+    const initialState = {};
+    const myReducer = (state, action) => {
+        switch (action.type) {
+            
+            case "SHOW":
+                console.log(action.payload.amt);
+                return Object.assign({}, state, {friend: action.payload.amt});
+            default: return state;
+        }
+    };
+    const store = Redux.createStore(myReducer);
+    ReduxMixin = PolymerRedux(store);
+</script>

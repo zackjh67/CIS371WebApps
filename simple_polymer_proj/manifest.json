@@ -1,0 +1,7 @@
+{
+  "name": "homework7",
+  "short_name": "homework7",
+  "description": "homework 7 polymer assignment web app",
+  "start_url": "/",
+  "display": "standalone"
+}

@@ -1,0 +1,141 @@
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../../bower_components/iron-icons/communication-icons.html">
+<link rel="import" href="../../bower_components/iron-list/iron-list.html">
+<link rel="import" href="../../bower_components/paper-card/paper-card.html">
+<link rel="import" href="../../bower_components/polymerfire/firebase-app.html">
+<link rel="import" href="../../bower_components/polymerfire/firebase-query.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-dialog-behavior/paper-dialog-behavior.html">
+<link rel="import" href="../../bower_components/iron-overlay-behavior/iron-overlay-behavior.html">
+<link rel="import" href="../../bower_components/neon-animation/animations/scale-up-animation.html">
+<link rel="import" href="../../bower_components/neon-animation/animations/fade-out-animation.html">
+<link rel="import" href="../../bower_components/neon-animation/neon-animation.html">
+<link rel="import" href="redux-mixin.html">
+
+<dom-module id="my-main">
+    <template>
+        <style include="iron-flex iron-flex-alignment"></style>
+        <style>
+            :host {
+                margin: auto;
+            }
+
+            /*automatically remove cards based on amount of data*/
+            .container {
+                @apply(	--layout-flex-auto);
+            }
+
+            iron-list {
+		    /*change viewport width and height*/
+                width: 60vw;
+                height: 50vh;
+            }
+
+            paper-card {
+                background: lime;
+            }
+
+            paper-button {
+                background-color: black;
+                color:lime;
+                width: 60vw;
+            }
+
+	    /*padding between cards*/
+            .item {
+                padding: 12px;
+            }
+
+        </style>
+
+        <!--firebase app for refs-->
+        <firebase-app id="myFireApp" api-key=”AIzaSyA0kb-zMnZ9ySmbe5PAVLy7TfYXN-NuH4A”
+                      auth-domain=”homework5371.firebaseapp.com”
+                      database-url=”https://homework5371.firebaseio.com></firebase-app>
+        </firebase-app>
+
+        <!--firebase query for listening to data changes-->
+        <firebase-query id="test" path="friends" data="{{friendData}}">
+        </firebase-query>
+
+        <iron-list items="[[friendData]]" as="f" selection-enabled selected-item="{{selectedItem}}">
+            <template>
+                <div class="item layout vertical">
+                    <paper-card heading="[[f.name]]" elevation="5">
+                        <div class="card-actions">
+                            <div class="layout horizontal end-justified">
+                                    <iron-icon id="deleteIcon" on-click="deleteFriend" icon="icons:delete"></iron-icon>
+                            </div>
+                        </div>
+                    </paper-card>
+                </div>
+            </template>
+        </iron-list>
+	<paper-button raised id="diaBtn" on-click="dialogOpened">Add Friend</paper-button>
+            <!--animated dialog box open and close-->
+            <paper-dialog id="newFriend" on-iron-overlay-closed="dialogClosed" entry-animation="scale-up-animation" exit-animation="fade-out-animation" with-backdrop>
+            <paper-input id="nameInput" label="Enter Name"></paper-input>
+            <paper-input id="ageInput" label="Enter Age"></paper-input>
+            <paper-input id="phoneInput" label="Enter Phone Number"></paper-input>
+            <div>
+                <paper-button dialog-dismiss>Cancel</paper-button>
+                <paper-button dialog-confirm>Add Friend</paper-button>
+            </div>
+        </paper-dialog>
+    </template>
+    <script>
+        class friendData extends Polymer.Element {
+            constructor() {
+                super();
+            }
+
+            static get is() {
+                return 'my-main';
+            }
+
+            static get properties() {
+                return {
+                    selectedItem: {
+                        type: Object,
+                        observer: '_userUpdated'
+                    }
+                };
+            }
+
+            deleteFriend(event){
+                //get key from selected card data and remove friend
+                const dbRef = this.$.myFireApp.app.database();
+                var key = event.model.f.$key;
+                var friendRef = dbRef.ref('friends/' + key);
+                friendRef.remove();
+
+            }
+
+            dialogOpened() {
+                this.$.newFriend.open();
+            }
+
+            dialogClosed() {
+                //add data only if closed with button
+                if (this.$.newFriend.closingReason.confirmed) {
+                    const dbRef = this.$.myFireApp.app.database();
+                    dbRef.ref('friends').push().set({
+                        name: this.$.nameInput.value,
+                        age: this.$.ageInput.value,
+                        phone: this.$.phoneInput.value});
+                }
+            }
+
+            _userUpdated(name) {
+                store.dispatch ({type:"SHOW", payload: {amt: name}});
+            }
+
+        }
+
+        customElements.define(friendData.is, friendData);
+    </script>
+</dom-module>

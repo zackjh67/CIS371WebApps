@@ -1,0 +1,94 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../bower_components/polymer-redux/polymer-redux.html">
+<link rel="import" href="../../bower_components/polymerfire/firebase-app.html">
+<link rel="import" href="../../bower_components/polymerfire/firebase-query.html">
+<link rel="import" href="../../bower_components/paper-card/paper-card.html">
+<link rel="import" href="redux-mixin.html">
+
+
+<dom-module id="friend-details">
+    <template>
+        <style include="iron-flex iron-flex-alignment"></style>
+        <style>
+            :host {
+                display: block;
+            }
+
+            paper-card {
+                background: lime;
+                width: 30vw;
+                height: 50vh;
+                /*float: right;*/
+            }
+
+            .titles {
+                font-weight: bold;
+            }
+
+            paper-button {
+                background-color: black;
+                color:lime;
+                width: 30vw;
+            }
+
+        </style>
+        <div class="item layout vertical">
+        <paper-card>
+            <div class="card-content">
+
+                <div class="layout horizontal center-justified">
+                    <div class="item layout vertical">
+                        <div class="item layout horizontal">
+                            <div class="titles">Name:&nbsp</div><div id="name">[[friend.name]]</div>
+                        </div>
+                        <div class="item layout horizontal">
+                            <div class="titles">Age:&nbsp</div><div id="age">[[friend.age]]</div>
+                        </div>
+                        <div class="item layout horizontal">
+                            <div class="titles">Phone:&nbsp</div><div id="phone">[[friend.phone]]</div>
+                        </div>
+                </div>
+                </div>
+            </div>
+        </paper-card>
+        <paper-button raised id="unselect" on-click="clearData">Unselect [[friend.name]]</paper-button>
+        </div>
+    </template>
+
+
+    <script>
+        /**
+         * @customElement
+         * @polymer
+         */
+        class FriendDetails extends ReduxMixin(Polymer.Element) {
+            static get is() {
+                return 'friend-details';
+            }
+
+            static get properties() {
+                return {
+                    friend: {
+                        type: Object,
+                        statePath: "friend"
+                    }
+                }
+            };
+
+            connectedCallback() {
+                super.connectedCallback();
+                const state = this.getState();
+                store.subscribe(() => {
+                    var currentState = store.getState();
+                });
+            }
+
+            clearData() {
+
+            }
+        }
+
+
+        window.customElements.define(FriendDetails.is, FriendDetails);
+    </script>
+</dom-module>

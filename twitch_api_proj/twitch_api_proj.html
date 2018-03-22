@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Homework 6</title>
+    <script type="text/javascript" src="https://embed.twitch.tv/embed/v1.js"></script>
+    <script type="text/javascript" src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
+</head>
+
+<body>
+<!--css styles-->
+<style>
+    body {
+        color: white;
+        background-color: black;
+        text-align: center;
+    }
+    table {
+        margin-top: 20px;
+        border-collapse: collapse;
+    }
+
+    table, th, td {
+        border: 1px solid white;
+    }
+
+    .tooltip {
+        position: relative;
+        display: inline-block;
+    }
+
+    .tooltip span {
+        visibility: hidden;
+        width: 120px;
+        background-color: red;
+        color: #fff;
+        text-align: center;
+        padding: 5px 0;
+        border-radius: 6px;
+        position: absolute;
+        z-index: 1;
+    }
+
+    .tooltip:hover span {
+        visibility: visible;
+    }
+
+    table {
+        layout: auto;
+    }
+
+    #search_button {
+        background-color: black;
+        color: white;
+    }
+
+    #stream {
+        text-align: center;
+        margin-top: 20px;
+    }
+</style>
+
+<h2>Search for a Game Stream to Watch!</h2>
+<h3>For Example: Search "Pokemon" then click the game image to watch.</h3>
+<button onclick="authorizeUser()">Authorize</button><br>
+<div id="search_input">
+    <br>
+    <button id="search_button" onclick="searchGames()">Search Games</button>
+    <!--make search button outside of form still search on enter key-->
+    <input type="search" placeholder="Enter Game Title" id="search_query" onkeydown="if (event.keyCode == 13)
+                   $('#search_button').click()"></input>
+    <br>
+</div>
+
+<div id="stream" style="display: none;">
+</div>
+
+<div id="search_results" style="display: none;">
+
+</div>
+
+<script>
+    //my client ID code, one kind of the API keys that twitch uses
+    var clientID = "r3h7kxo8tfb9mgu40w6jexfcg4yrlf";
+    var redirect = "http://cis.gvsu.edu/~hernz/CIS371/hw6/Homework6.html";
+
+
+    /**********************************************************************
+     * Searches for all games matching a query and displays game title and
+     * box art in table
+     * Uses old V5 API, depreciates on 12/31/18, hopefully feature will be
+     * added to current API
+     *
+     *
+     * Note: For some reason Twitch's API recognizes 'COD' to search for
+     * Call of Duty games but not actually 'Call of Duty' unless game version
+     * is specified
+     **********************************************************************/
+    function searchGames() {
+        //hide other div
+        $('#stream').hide();
+
+        //remove existing messages in div
+        $('#search_results').empty();
+
+        //get search text in box, ignoring outer whitespace
+        var query = $('#search_query').val().trim();
+
+        //ensure query isn't empty
+        if (query) {
+            //encode query for url
+            var encodedQuery = encodeURIComponent(query)
+
+            /* curl -H 'Accept: application/vnd.twitchtv.v5+json' \
+            -H 'Client-ID: clientID' \
+            -X GET 'https://api.twitch.tv/kraken/search/games?query=<query>' */
+
+            //ajax command that does same as curl command above
+            $.ajax({
+                method: 'GET',
+                url: 'https://api.twitch.tv/kraken/search/games?query=' + encodedQuery,
+                crossDomain: true,
+                headers: {
+                    "Accept": "application/vnd.twitchtv.v5+json",
+                    "Client-ID": clientID
+                }
+            }).done(function (data) {
+                //clear and hide stream player
+                $('#stream').hide();
+                $('#stream').empty();
+
+                //there are no results
+                if (data.games) {
+                    //create table for search results
+                    var table = $('<table></table>').attr('id', 'search_table');
+
+                    //games left in search results
+                    var gamesLeft = data.games.length;
+                    for (var i = 0; i < data.games.length; i++) {
+                        //add row
+                        var row = $('<tr></tr>');
+                        //check size of cols
+                        var cols;
+                        if (gamesLeft >= 4)
+                            cols = 4;
+                        else
+                            cols = gamesLeft;
+                        for (var j = 0; j < cols; j++) {
+                            var column = $('<td></td>');
+                            //div for hovering tooltip
+                            var tooltipDiv = $('<div></div>').attr('class', 'tooltip');
+                            var gameTitle = data.games[i + j].name + '<br>';
+                            var gameImage = $('<img></img>')
+                                .attr('src', data.games[i + j].box.medium)
+                                .attr('onclick', 'getStreams(' + data.games[i + j]._id + ')')
+                                .attr('alt', 'Cover for ' + gameTitle);
+                            column.append(tooltipDiv);
+                            tooltipDiv.append(gameTitle);
+                            tooltipDiv.append(gameImage);
+                            tooltipDiv.append($('<span>Click to show most popular stream!</span>'));
+                            row.append(column);
+                            gamesLeft--;
+                        }
+                        i = i + cols;
+
+                        table.append(row);
+                    }
+
+                    //append table
+                    $('#search_results').append(table);
+                }
+                else
+                    $('#search_results').append('<h3>No Results Found</h3>');
+
+            });
+        }
+        else {
+            $('#search_results').append('<h3>Please Enter a Search Term</h3>');
+        }
+        //unhide search results
+        $('#search_results').show();
+    }
+
+    /**********************************************************************
+     * Gets most popular stream for specific game and calls methods to embed it
+     * Uses new Twitch API
+     * @param game_id twitch game id unique for each game
+     **********************************************************************/
+    function getStreams(game_id) {
+        //clear and hide search div
+        $('#search_results').hide();
+        $('#search_results').empty();
+
+        //clear search box
+        $('#search_query').val('');
+        /* curl -H 'Client-ID: clientID \
+        -X GET 'https://api.twitch.tv/helix/streams?game_id=<game_id>' */
+
+        //ajax command that does same as curl command above
+        $.ajax({
+            method: 'GET',
+            url: 'https://api.twitch.tv/helix/streams?game_id=' + game_id,//+'&type=live',
+            crossDomain: true,
+            headers: {
+                "Client-ID": clientID
+            },
+            accepts: "application/json"
+        }).fail(function (data) {
+            alert("Error processing request.");
+        }).done(function (data) {
+            if (data.data.length > 0) {
+                //load result with the most views
+                var user_id = data.data[0].user_id;
+
+                //get username and embed player
+                getUsername(user_id);
+            }
+            else
+                $('#stream').append('<h3>Sorry, No Streams Found.</h3>');
+            $('#stream').show();
+        });
+
+
+    }
+
+    function authorizeUser() {
+        //ajax command that does same as curl command above
+        $.ajax({
+            method: 'GET',
+            url: 'https://api.twitch.tv/kraken/oauth2/authorize' +
+            '?client_id=' + clientID +
+            '&redirect_uri=' + redirect +
+            '&response_type=' + 'token' +
+            '&scope=' + 'openid',
+//            crossDomain: true,
+//            headers: {
+//                "Client-ID": clientID
+//            },
+            accepts: "application/json"
+        }).fail(function (data) {
+//            alert("Error processing request.");
+        }).done(function (data) {
+            if (data.data.length > 0) {
+                //load result with the most views
+                var user_id = data.data[0].user_id;
+
+                //get username and embed player
+                getUsername(user_id);
+            }
+        });
+    }
+
+    /**********************************************************************
+     * embeds twitch player to div with id "stream"
+     * @param username username of twitch streamer
+     **********************************************************************/
+    function embedPlayer(username) {
+        var player = new Twitch.Embed("stream", {
+            width: 854,
+            height: 480,
+            channel: username
+        });
+    }
+
+    /**********************************************************************
+     * gets username from user id to embed correct twitch player
+     * @param user_id twitch user's id
+     **********************************************************************/
+    function getUsername(user_id) {
+
+        $.ajax({
+            method: 'GET',
+            url: 'https://api.twitch.tv/helix/users?id=' + user_id,
+            crossDomain: true,
+            headers: {
+                "Client-ID": clientID
+            },
+            accepts: "application/json"
+        }).fail(function (data) {
+            alert("Error processing request.");
+        }).done(function (data) {
+            embedPlayer(data.data[0].display_name);
+        });
+    }
+</script>
+
+
+
+</body>
+</html>

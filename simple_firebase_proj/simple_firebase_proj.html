@@ -1,0 +1,240 @@
+
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <!--bad style I know, sorry!-->
+    <style>
+        table {
+            table-layout: auto;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        #dataOutput {
+            float: right;
+        }
+    </style>
+</head>
+<body>
+
+<h3>Upload JSON File of Friends</h3>
+
+<div id="dataOutput">
+
+</div>
+
+<div>
+    <form>
+        <input id="upload" type="file">
+        <button type = "button" onclick="processUpload()">Upload</button>
+    </form>
+</div><br><br><br>
+
+<div>
+    <h3>Insert New Record</h3>
+    <form onsubmit="event.preventDefault(); insertRecord()">
+        Enter Name: <input id="enterName" type="text" required="required" pattern="[A-Z]!?[a-z]{1,}(\s!?[A-Z]!?[a-z]{1,})?" title="First letter of each name must be capitalized."><br>
+        Enter Phone Number:<input id="enterPhone" type="text" required="required" pattern="(([0-9]){7})|(([0-9]){10})" title="Phone number must be 7 or 10 digits long, please enter only numbers"><br>
+        Enter Age:<input id="enterAge" type="text" required="required" pattern="([0-9]){0,3}" title="Age cannot be blank"><br>
+        <input type="submit">
+    </form>
+</div>
+
+<div id="searchForm">
+    <h3>Search</h3>
+    <form onsubmit="event.preventDefault(); search();">
+        <button>GO!</button>
+        <input id="searchField" type="search" required="required" title="Search must be letters only">
+    </form>
+
+</div>
+
+</body>
+<!--scripts-->
+<!--firebase stuff-->
+<script src="https://www.gstatic.com/firebasejs/4.5.1/firebase.js"></script>
+<script>
+    // Initialize Firebase
+    var config = {
+        apiKey: "AIzaSyA0kb-zMnZ9ySmbe5PAVLy7TfYXN-NuH4A",
+        authDomain: "homework5371.firebaseapp.com",
+        databaseURL: "https://homework5371.firebaseio.com",
+        projectId: "homework5371",
+        storageBucket: "homework5371.appspot.com",
+        messagingSenderId: "715154006745"
+    };
+    firebase.initializeApp(config);
+
+    //initialize data table
+    createTable(document.getElementById("dataOutput"), "firebaseTable", "Friends");
+
+    //root listener
+    var rootRef = firebase.database().ref();
+    //ref to friends node
+    var friendRef = rootRef.child("friends");
+    //initial filling of existing data into table
+    friendRef.once("value", function(snapshot){
+        snapshot.forEach(function(childSnapshot){
+            //helper method for adding firebase data to table
+            dataToTable(childSnapshot, document.getElementById("firebaseTable"));
+        });
+    });
+
+    //constant listener for added children
+    friendRef.on('child_added', function(data) {
+        //only add to table if unique keyed item doesn't already exist
+        if(document.getElementById(data.key) === null){
+            dataToTable(data, document.getElementById("firebaseTable"));
+        }
+    });
+
+
+    <!--upload script-->
+    function processUpload() {
+        var uploadInfo = document.getElementById("upload");
+        var worked = "in if statement";
+        if ("files" in uploadInfo) {
+            var reader = new FileReader();
+            reader.onload = function(event) {
+                var jsonObj = JSON.parse(event.target.result);
+                /* put your code here, whatever you need to do with jsonObj */
+                for(x in jsonObj) {
+                    friendRef.push().set(jsonObj[x]);
+                }
+                window.alert(jsonObj.length + " friends added to database.");
+            };
+
+            /* file is an array and we are interested only in the first element */
+            reader.readAsText(uploadInfo.files[0]);
+        }
+    }
+
+    /*
+    * initializes and creates tables for data display and search method
+    */
+    function createTable(destination, tableid, title){
+        //create table
+        //div where table goes
+
+        //heading
+        var heading = document.createElement("H3");
+
+        //text for header
+        heading.appendChild(document.createTextNode(title));
+
+        //append heading to div
+        destination.appendChild(heading);
+
+        //table
+        var table = document.createElement("TABLE");
+        table.setAttribute("id", tableid);
+
+        //append table to div
+        destination.appendChild(table);
+
+        //header row
+        var headerRow = document.createElement("TR");
+        //headers for row
+        var nameHeader = document.createElement("TH");
+        var phoneHeader = document.createElement("TH");
+        var ageHeader = document.createElement("TH");
+
+        //create header text
+        nameHeader.appendChild(document.createTextNode("Name"));
+        phoneHeader.appendChild(document.createTextNode("Phone Number"));
+        ageHeader.appendChild(document.createTextNode("Age"));
+
+        //append headers to row
+        headerRow.appendChild(nameHeader);
+        headerRow.appendChild(phoneHeader);
+        headerRow.appendChild(ageHeader);
+
+        //append row to table
+        table.appendChild(headerRow);
+    }
+
+    /*
+    * helper method to add firebase data to a table
+    */
+    function dataToTable(data, destination){
+
+        //row for values
+        var row = document.createElement("TR");
+
+        //set friend row to unique auto-generated key for each entry
+        row.setAttribute("id", data.key.toString());
+
+        //columns for data
+        var nameCol = document.createElement("TD");
+        var phoneCol = document.createElement("TD");
+        var ageCol = document.createElement("TD");
+
+        //add columns to row
+        row.appendChild(nameCol);
+        row.appendChild(phoneCol);
+        row.appendChild(ageCol);
+
+        //phone number formatting
+        var phoneData = data.val().phone;
+        var phoneString;
+        //add dash regardless
+        phoneString = phoneData.substr(0, phoneData.length - 4) + "-" + phoneData.slice(-4);
+        if(phoneData.length > 7)
+            phoneString = "(" + phoneString.substr(0, 3) + ") " + phoneString.substr(3);
+
+        //add text to columns
+        nameCol.appendChild(document.createTextNode(data.val().name));
+        phoneCol.appendChild(document.createTextNode(phoneString));
+        ageCol.appendChild(document.createTextNode(data.val().age));
+
+        //append row to table
+        destination.appendChild(row);
+    }
+    /*
+    * inserts a record into the firebase database
+    */
+    function insertRecord(){
+
+        //create object to hold data
+        var obj = new Object();
+        obj.name = document.getElementById("enterName").value;
+        obj.phone  = document.getElementById("enterPhone").value;
+        obj.age = document.getElementById("enterAge").value;
+
+        //convert obj into json string and parse
+        var jsonobj = JSON.parse(JSON.stringify(obj));
+
+        //push record to table
+        friendRef.push().set(jsonobj);
+    }
+
+    /*
+    * helper method to search through firebase database
+    */
+    function search(){
+        //table exists, delete contents
+        if(document.getElementById("searchResults")) {
+            document.getElementById("searchResults").parentNode.removeChild(document.getElementById("searchResults"));
+            //remove generated header
+            var searchForm = document.getElementById("searchForm");
+            var headings = searchForm.getElementsByTagName("H3");
+            searchForm.removeChild(headings[1]);
+        }
+        //create table
+            createTable(document.getElementById("searchForm"), "searchResults", "Search Results");
+        //get input search text
+        var searchTerm = document.getElementById("searchField").value;
+        var matches;
+        //traverse friend data
+        friendRef.once("value", function(snapshot){
+            snapshot.forEach(function(childSnapshot){
+                var name = (childSnapshot.val().name).toString();
+                if(name.toUpperCase().includes(searchTerm.toUpperCase())){
+                    dataToTable(childSnapshot, document.getElementById("searchResults"));
+                }
+            });
+        });
+
+    }
+</script>
+</html>

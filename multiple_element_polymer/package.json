@@ -1,0 +1,17 @@
+{
+  "name": "hw8",
+  "version": "1.0.0",
+  "description": "homework8",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "test"
+  },
+  "author": "Zachary Hern",
+  "license": "ISC",
+  "dependencies": {
+    "redux": "^3.7.2"
+  }
+}
